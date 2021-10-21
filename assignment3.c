@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/wait.h>
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
@@ -11,15 +10,15 @@
  * Rishabh Jain
  */
 
-// Creating global array to be used by sprintf in main and functions
-char output[60];
-
+// Creating array to be used by sprintf in main and functions
+char output[256];
 // Pipe
 int port[2];
+// Integer holding number of characters to be read/written from/to pipe
+int pipeSize;
 
 char array[0];
-
-int pipeSize;
+// Integer S is sum of the two args
 int S;
 
 // This function is executed by thread 100
@@ -31,7 +30,7 @@ void *sum(void *thread_id) {
 
     // Get X and Y from the array by splitting around ","
     char * xToken = strtok(array, ",");
-    char * yToken = strtok(NULL, ",");
+    char * yToken = strtok(NULL, "");
 
     // Convert X and Y to integers
     int X = atoi(xToken) , Y = atoi(yToken);
@@ -93,7 +92,7 @@ void *digit_count(void *thread_id) {
     read(port[0], output, pipeSize);
     // Convert S to int
     S = atoi(output);
-    int sCount = S;
+    int sCopy = S;
 
     // Print the statement and the values
     sprintf(output, "thread (TID %d) reads X + Y = %d from the pipe", *id, S);
@@ -101,8 +100,8 @@ void *digit_count(void *thread_id) {
 
     // Count the number of digits in S
     int count = 0;
-    while (sCount != 0) {
-        sCount = sCount / 10;
+    while (sCopy != 0) {
+        sCopy = sCopy / 10;
         ++count;
     }
 
@@ -124,14 +123,10 @@ int main(int argc, char *argv[2]) {
     }
 
     // Accepts two integers from the user as command-line arguments and stores them in variables X and Y
-
     char *xArg = argv[1];
     int X = atoi(xArg);
     char *yArg = argv[2];
     int Y = atoi(yArg);
-
-    // Array to hold the two integer arguments
-
 
     // Print the received values
     sprintf(output, "parent (PID %d) receives X = %d and Y = %d from the user", parent_pid, X, Y);
@@ -147,23 +142,25 @@ int main(int argc, char *argv[2]) {
     // Thread IDs
     pthread_t thread_1, thread_2, thread_3;
     int thread_id_1 = 100, thread_id_2 = 101, thread_id_3 = 102;
+
     // Thread 1 (ID 100)
     if (pthread_create(&thread_1, NULL, sum, &thread_id_1)) {
         sprintf(output, "Error while creating thread 1\n");
         exit(1);
     }
     pthread_join(thread_1, NULL);
+
     // Thread 2 (ID 101)
     if (pthread_create(&thread_2, NULL, odd_even, &thread_id_2)) {
         sprintf(output, "Error while creating thread 2\n");
         exit(1);
     }
     pthread_join(thread_2, NULL);
+
     // Thread 3 (ID 102)
     if (pthread_create(&thread_3, NULL, digit_count, &thread_id_3)) {
         sprintf(output, "Error while creating thread 3\n");
         exit(1);
     }
     pthread_join(thread_3, NULL);
-
 }
